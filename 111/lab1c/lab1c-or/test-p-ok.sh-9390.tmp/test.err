@@ -1,0 +1,9 @@
+g++: foo.c: No such file or directory
+g++: no input files
+../timetrash: Invalid simple command which can not be executed!
+../timetrash: Error on opening input file
+../timetrash: Invalid simple command which can not be executed!
+../timetrash: Invalid simple command which can not be executed!
+../timetrash: Error on opening input file
+../timetrash: Error on opening input file
+Error on opening input file

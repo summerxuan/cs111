@@ -1,0 +1,2 @@
+cat < f1
+echo a && echo b> f1

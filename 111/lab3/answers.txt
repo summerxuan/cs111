@@ -1,0 +1,77 @@
+# Fill in your name, student ID, and email address in this file.
+# If you are working in a team, fill out the information for both team 
+# members.
+
+# SUBMIT THE LAB ONLY ONCE (from only one partner). This file will be
+# automatically parsed in order to give both team members credit for the
+# lab.
+
+# If you did one or more extra credit problems, indicate which one in the
+# appropriate section below (remove the # sign first). If you have any other
+# information you'd like us to know, please add it at the end of the file.
+
+# Partner 1
+Name: Qinyi yan
+Student ID: 704406413
+Email: qinyiyan1106@gmail.com
+
+# Partner 2 
+Name: Xiaoxuan Wang
+Student ID: 804406399
+Email: wangxiaoxuan7875@gmail.com
+
+# Extra credit problems
+#Extra credit problem: none
+
+
+
+#Questions in notes
+Question 1: What should be done in the first exercise if (*fpos == oi_size)?
+The read function need to make sure we don't read past the end of the file. 
+When *fpos == oi_size, we need to change 'count' to zero so we never read past the end of the file.
+
+Question 2: Lines 469–470: When does this happen?
+ Make sure you ignore blank directory entries!  (Which have
+		 * an inode number of 0.)
+Blank directory enties would happen each time we create a blank directory entry. It will store the 
+ino = 0 in this inode. 
+
+
+Question 3: Line 621: What if the "offset of the relevant indirect block" is 0? How do we know whether to use the
+indirect block or the indirect2 block?
+If the offset of the relevant indirect block is zero, it will retrun zero.
+We could determine it by using indir2_index(uint32_t b) first, if it return zero, we should use
+the indirect2 block. Using indir_index(uint32_t b) when it returns zero, we should use the indirect blcok.
+
+Question 4: This seems kind of slow. Why can't you add a lot at a time?
+We think the reason is adding a block is nontrival. Since the procedure is step by step, we need to consider if it is
+indirect2. Then we need to consider if it will successfully allocate for indirect and direct. Each processdure failed will
+convert the process.
+If we addding blocks simutantously, the adding and reverting may cause some problems. 
+
+
+Question 5: Last sentence of 669–673: When might this case occur?
+// Remember that allocating a new data block may require allocating
+// as many as three disk blocks, depending on whether a new indirect
+// block and/or a new indirect^2 block is required. If the function
+// fails with -ENOSPC or -EIO, then you need to make sure that you
+// free any indirect (or indirect^2) blocks you may have allocated!
+If we try to allocate a indirect or indirect2 blocks and then fail to allocate
+direct or indirect blocks for these two situations. Then we need to convert this 
+procedure.
+
+
+Question 6: Lines 759–761: What values do add_block() and remove_block() set it to?
+//   Also: Don't forget to change the size field in the metadata of the file.
+//         (The value that the final add_block or remove_block set it to
+//          is probably not correct).
+In remove_block, the oi_size should be oi->oi_size = (n-1)*OSPFS_BLKSIZE;
+In add_block, the oi_size should be oi->oi_size = (n+1)*OSPFS_BLKSIZE;
+
+Question 7: Line 1038: -ENOSPC is returned if the disk is full and the file can't be created. If we're linking a file,
+since it already exists, when could this case happen? (It can happen.)
+It will happen when there is no one inode block left since creating a link also needs inode, if we're linking
+a file also get the -ENOSPC, it means no one inode block exists.
+
+# Add any other information you'd like us to know below this line.
+The #22 and #23 test cases in our "lab3-tester.pl" are to test conditional symbolic links. It works just fine if we comment out the "-ENAMETOOLONG" cases, which means our conditional symbolic links should work well if it is for shorter path directories. 

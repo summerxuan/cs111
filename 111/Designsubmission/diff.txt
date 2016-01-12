@@ -1,0 +1,300 @@
+23,24d22
+< pid_t pidArray[50];
+< int countArray=0;
+86c84,85
+< 		//printf("Executable!\n");
+---
+> 		else
+> 			printf("Executable!\n");
+212c211,212
+< void execute_subshell_command (command_t c)
+---
+> void 
+> execute_subshell_command (command_t c)
+216a217,373
+> //design project:
+> void
+> execute_while_command (command_t c)
+> {
+> 	execute_command(c->u.command[0],0);
+> 	c->status = c->u.command[0]->status;
+> 	if (c->u.command[0]->status > 0)
+> 		error (1,0, "Syntax error: while condition not valid.");
+> 	else if (c->u.command[0]->status < 0)
+> 		error (1,0, "Condition Error.");
+> 	while (c->u.command[0]->status == 0)
+> 	{
+> 		execute_command(c->u.command[1],0);
+> 		c->status = c->u.command[1]->status;
+> 		execute_command(c->u.command[0],0);
+> 	}
+> }
+> void
+> execute_until_command (command_t c)
+> {
+> 	execute_command(c->u.command[0],0);
+> 	c->status = c->u.command[0]->status;
+> 	if (c->u.command[0]->status < 0)
+> 		error (1,0, "Condition Error.");
+> 	while (c->u.command[0]->status >0)
+> 	{
+> 		execute_command(c->u.command[1],0);
+> 		c->status = c->u.command[1]->status;
+> 		execute_command(c->u.command[0],0);
+> 	}
+> }
+> 
+> void 
+> substitute_tokens (command_t cmd, char * subs_from,char* subs_with)
+> {
+> 	if (cmd->type != SIMPLE_COMMAND)
+> 	{
+> 		substitute_tokens (cmd->u.command[0], subs_from, subs_with);
+> 		substitute_tokens (cmd->u.command[1], subs_from, subs_with);
+> 		if (cmd->u.command[2] != NULL)
+> 			substitute_tokens (cmd->u.command[2], subs_from, subs_with);
+> 	}
+> 	else 		//simple_command
+> 	{
+> 		int i=0;
+> 		char* tmp = cmd->u.word[i];
+> 		while (tmp != NULL )
+> 		{
+> 			
+> 			if (tmp[0] == '$')
+> 			{
+> 			if (strcmp (tmp+1, subs_from) == 0)
+> 			{
+> 				strcpy (tmp, subs_with);
+> 			}
+> 			}
+> 			/*
+> 			if (strcmp (tmp, "$subs_from") == 0)
+> 			{
+> 				strcpy (tmp, subs_with);
+> 			}*/
+> 			i++;
+> 			tmp = cmd->u.word[i];
+> 		}
+> 	}
+> }
+> void 
+> substitute_back (command_t cmd, char * subs_from,char* subs_with)
+> {
+> 	if (cmd->type != SIMPLE_COMMAND)
+> 	{
+> 		substitute_back (cmd->u.command[0], subs_from, subs_with);
+> 		substitute_back (cmd->u.command[1], subs_from, subs_with);
+> 		if (cmd->u.command[2] != NULL)
+> 			substitute_back (cmd->u.command[2], subs_from, subs_with);
+> 	}
+> 	else
+> 	{
+> 		int i=0;
+> 		char* tmp = cmd->u.word[i];
+> 		while(tmp != NULL)
+> 		{
+> 			if (strcmp (tmp, subs_from) == 0)
+> 			{
+> 				tmp[0]='$';
+> 				strcpy (tmp+1, subs_with);
+> 			}
+> 			i++;
+> 			tmp = cmd->u.word[i];
+> 		}
+> 	}
+> }
+> void
+> execute_for_command(command_t c)
+> {
+> 	if (c->u.command[0]->type != SIMPLE_COMMAND)
+> 		error (1,0, "for command condition error.");
+> 	int i=0;
+> 	char* tmp = c->u.command[0]->u.word[i];
+> 	while (tmp != NULL && strcmp (tmp, "in")!=0)
+> 	{
+> 		i++;
+> 		tmp = c->u.command[0]->u.word[i];
+> 	}
+> 	if (tmp != NULL)	//tmp == "in"
+> 	{
+> 		char* variable = c->u.command[0]->u.word[i-1];
+> 		i++;
+> 		tmp = c->u.command[0]->u.word[i];
+> 		while (tmp != NULL)
+> 		{
+> 			substitute_tokens (c->u.command[1], variable, tmp);
+> 			execute_command (c->u.command[1],0);
+> 			substitute_back (c->u.command[1], tmp, variable);
+> 			c->status = c->u.command[1]->status;
+> 			i++;
+> 			tmp = c->u.command[0]->u.word[i];
+> 		}
+> 	}
+> 	else //tmp == NULL
+> 		error (1,0,"Syntax error: missing in token in for command.");
+> }
+> 
+> void
+> execute_if_command(command_t c)
+> {
+> 	execute_command(c->u.command[0],0);
+> 	c->status = c->u.command[0]->status;
+> 	if (c->u.command[0]->status < 0)
+> 		error (1,0, "Condition Error.");
+> 	if (c->u.command[0]->status == 0)
+> 	{
+> 		execute_command(c->u.command[1], 0);
+> 		c->status = c->u.command[1]->status;
+> 	}
+> 	else if (c->u.command[2]!=NULL)
+> 	{
+> 		execute_command(c->u.command[2], 0);
+> 		c->status = c->u.command[2]->status;
+> 	}
+> 	else 
+> 		c->status = 0;
+> }
+> 
+> void
+> execute_not_command(command_t c)
+> {
+> 	execute_command(c->u.command[0],0);
+> 	//c->status = c->u.command[0]->status;
+> 	if (c->u.command[0]->status < 0)
+> 		error (1,0, "Condition Error.");
+> 	else 
+> 	{
+> 		c->status = ! (c->u.command[0]->status);
+> 	}
+> 
+> }
+248a406,420
+>      		case WHILE_COMMAND:
+>      		execute_while_command(c);
+>      		break;
+>      		case FOR_COMMAND:
+>      		execute_for_command(c);
+>      		break;
+>      		case UNTIL_COMMAND:
+>      		execute_until_command(c);
+>      		break;
+>      		case IF_COMMAND:
+>      		execute_if_command(c);
+>      		break;
+>      		case NOT_COMMAND:
+>      		execute_not_command(c);
+>      		break;
+249a422
+>      		error(1,0, "Error: Unknown command!");
+288,289c461
+< 		error(1,0,"Error: invalid command!");
+< 		//printf("do something");
+---
+> 		printf("do something");
+302c474
+< 			if (strcmp(ptr->filename,depend->text)==0)//if there exists dependency
+---
+> 			if (ptr->filename == depend->text)//if there exists dependency
+317d488
+< //printf("wake_up\n");
+319,322c490
+< 	{
+< 		//printf("NULL\n");
+< 	return;
+< 	}
+---
+> 		return;
+337d504
+< 					//printf("COMMAND2 children");
+344,345d510
+< 				//pidArray[countArray] = pid;
+< 				//countArray++;
+363d527
+< 		
+367,376d530
+< void
+< build_waitlist(command_stream_t command_stream)
+< {
+< 	command_stream_t track = command_stream_head;
+< 	while(track != NULL)
+< 	{
+< 		check_dependency(track->p_command,outfile_head);
+< 		track = track->next;
+< 	}
+< }
+380d533
+< 	build_waitlist(command_stream);
+385d537
+< 	
+388,389c540
+< 		error(1,0, "Error: the command stream is empty.");
+< 		//printf("The command stream is empty\n");
+---
+> 		printf("The command stream is empty\n");
+396,398c547
+< 		//int check = check_dependency(track->p_command,outfile_head); 
+< 		//printf("%d\n",check);
+< 		if(track->p_command->dependency== 0)
+---
+> 		if(check_dependency(track->p_command,outfile_head) == 0 )
+403d551
+< 					
+406d553
+< 					//printf("children\n");
+415,420c562,563
+<     			//if ( (waitpid(pid, NULL, 0)) == -1)
+<       			//printf ("parent");
+< 				//wakeup_waitlist(track->p_command);
+< 				pidArray[countArray] = pid;
+< 				countArray++;
+< 				//error(1, errno, "Child process error");
+---
+>     			if ( (waitpid(pid, NULL, 0)) == -1)
+>       			error(1, errno, "Child process error");
+425d567
+< 			
+434,445d575
+< 		else
+< 			{
+< 			//printf("Has depends\n");
+< 			track = track->next;
+< 			}
+< 	}
+< 	int countloop = 0;
+< 	while (countloop < countArray )
+< 	{
+< 		if (pidArray[countloop] > 0)
+< 		waitpid(pidArray[countloop], NULL, 0);
+< 		countloop++;
+453,476c583,585
+< 	if (outfile ->next !=NULL && outfile->prev !=NULL)
+< 	{
+< 		outfile -> next -> prev = outfile ->prev;
+< 		outfile -> prev -> next = outfile ->next;
+< 		free (outfile);	
+< 	}
+< 	else if (outfile ->prev != NULL && outfile->next == NULL)
+< 	{
+< 		outfile_tail = outfile->prev;
+< 		outfile -> prev -> next =NULL;
+< 		free(outfile);
+< 	}
+< 	else if (outfile ->prev == NULL && outfile->next != NULL)
+< 	{
+< 		outfile_head = outfile->next;
+< 		outfile->next->prev = NULL;
+< 		free (outfile);
+< 	}
+< 	else // both == NULL
+< 	{
+< 		outfile_head = NULL;
+< 		outfile_tail = NULL;
+< 		free(outfile);
+< 	}
+---
+> 	outfile -> next -> prev = outfile ->prev;
+> 	outfile -> prev -> next = outfile ->next;
+> 	free (outfile);	
+481d589
+< 

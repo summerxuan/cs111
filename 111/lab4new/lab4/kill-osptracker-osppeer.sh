@@ -1,0 +1,1 @@
+kill $(ps aux | grep 'osp' | awk '{print $2}')

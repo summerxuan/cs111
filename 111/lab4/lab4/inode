@@ -1,0 +1,41 @@
+inode 
+structure
+derect pointer ---------> data blocks
+indirect pointer --------> table of direct pointers -------------->data
+indirect pointer2 -------->table of indirect pointers------------->
+directories are inodes too
+type = OSPFS_FTYPT_DIR
+pointer does not points to row data
+points to directory data block
+directory entry
+directory entry data
+-----------
+etc
+-----------
+bin
+-----------
+usr
+-----------
+home (ino 12) ------> turker (ino 1000) -----> file inode     
+-----------
+inodes do not have filename field
+File system level: superblock
+– os_magic # marker
+//variable check if we are
+– os_nblocks # blocks
+//how many blocks do we have
+– os_ninodes # inodes
+//number of inodes
+– os_firstinob # offset
+ //first inode block
+ we can not hardlink to directory
+if the thing you pointes to is not terminal, may create infinite loop
+when creating the hardlink
+add one more directory entry
+symbolic links
+contains a pathname
+creating a symbolic link
+the inode has the type symbolic, and the pathname,
+the OS will loop up for the pathname
+hard link is faster only look up once
+g

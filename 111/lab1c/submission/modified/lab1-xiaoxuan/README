@@ -1,0 +1,22 @@
+This is a skeleton for CS 111 Lab 1.
+
+Team member:
+Xiaoxuan Wang(UID:804406399)
+Qinyi Yan(UID:704406413)
+
+Lab1a
+Our code successfully accomplished the functionality in the following procedure:
+1. read file into a buffer;
+2. Convert characters from the buffer into token streams, each of which consists of tokens for one specific command;
+3. Build command trees and then connect trees to command stream;
+4. Pass the first command_stream to read_command_stream function;
+5. the read_command_stream function iteratively returns the head command.
+
+Lab1b
+In lab1b, we impletmented the execute-command.c, which can execute the command which are already stored in the comand_stream.
+We analysed the situations according to different types of commands including and, or, pipe, simple, sequence and subshell. While impletmentation, we used a lot of system calls, the execvp function do the basic staff of executing commands which read from word[].
+While testing, we have our script.sh, which includes all the kinds of subshell,and we execute it using ./timetrash script.sh and compared it result with sh scirpt.sh. It is correct.
+
+Lab1c
+In lab1c, we impletmented the timetrash mode, by specifiring the flag -t.
+The basic idea is we add dependlist, waitlist to the  command data structure, and an global outlist which gathered all the outfile the command output. everytime we build the command, we add the file after the keyword such as cat and the input file to this command's dependlist. Also, add the output file to this command's outfile list, when we need to fork the new process for the new command, we need to firstly check the dependlist with the output list, if the command has some depends, we keep a dependency number to track how many commands it need to wait. And also add these corresponding commands to this command's waitlist. Everythine, we excute one command which has dependency equals to zero, and then calls the wakeup() function to call the commands in waitlist. If now the dependency equals zero, then we execute this command.

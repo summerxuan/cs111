@@ -1,0 +1,53 @@
+Name: Xiaoxuan wang
+UCLA ID:
+804406399
+Collaborators:
+Qinyi yan 704406413
+-------------------------------------------------------------------------------
+
+Response to Exercise 1:
+
+The name of the scheduling algorithm is: round robin
+
+
+(Exercise 2 is a coding exercise)
+
+
+Response to Exercise 3:
+
+Average turnaround time for scheduling_algorithm 0: (4*319+1 + 4 *319+2 + 4*319+3 + 4*319+4)/4 = 1278.5 ms 
+Average turnaround time for scheduling_algorithm 1: (320 + 640 + 960 + 1280) /4 = 800 ms 
+
+Average wait time for scheduling_algorithm 0:  (0+1+2+3)/4 = 6/4 = 1.5 ms. Simply take how many characters each process has before it over the total number of processes.
+Average wait time for scheduling_algorithm 1: (0 + 320 + 2*320 + 3*320)/4 = 480 ms 
+
+
+Exercise 4:
+
+Did you complete Exercise 4A, Exercise 4B, or both for extra credit?
+Both 4A and 4B are implemented
+4A: implement system call sys_priority(int p) function, add case INT_SYS_PRIORITY in schedos.h. We also added a field "p_priority" in struct process to indicate the priority of the process (lower the number, higher the priority). The scheduling is implemented recording the lowest priority number among the four processes. If there is only one highest priority process, run it then yield (since it is still the highest-priority process, it will run again). If there are two ore more processes of the same highest priority, when the first one yields, the second one gets to run, so on and so forth. The first time running process 1, we first make it yield. 
+
+4B: implement system call sys_share(int p) function, case INT_SYS_SHARE. Add p_share, p_run_times fields, initially set p_share to 1 and p_run_times to 0. Using runtimes to count how many time the process.When the runtimes smaller then the share, run this process. Otherwise reset it to zero and run next runnable process. Using pid+1%NPROCS to keep process moving. (in my case, set proportion to 8,4,2,1 respectively)
+Quoted the sys_yield in schedos-1.c in the beginning which set for 4a.
+
+Exercise 5:
+During to the picture, the 4th process is first known to interrupted.
+Since the first unsteady output is 1234 1234 1234 1234 1231 2341.
+
+(Exercise 6 is a coding exercise)
+
+
+Anything else you'd like us to know:
+
+
+
+Extra credit exercises:
+Exercise 7:
+We implemented the lottery scheduling method.
+We built an array of the size of 4*320, which is the size of the lottery pooh. We save he pid_t of process 1 into array[0]~array[319], pid_t of process 2 to array[320]~array[639], so on and so forth. Then during the scheduling, a random number in the range of 0~(4*320-1) will be generated and that sector of array will be chosen. If the p_status of the process indicated by the array sector is RUNNABLE, run it. 
+
+Exercise 8:
+We implemented another system call called sys_atomic_print, which will print the char as atomic.
+Add the corresponding memeber like INI_SYS_PRINT and sys_atomic_print system call. After testing, it will work either in exercise 6 way or the new system call way.
+The race condition is prevented.

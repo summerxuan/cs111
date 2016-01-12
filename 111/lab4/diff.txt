@@ -1,0 +1,321 @@
+24a25
+> #include <sys/wait.h>
+26a28,29
+> int slow_mode;                  // nonzero iff this peer should throttle uploads
+> int connected = 0;
+31d33
+< 
+40a43,45
+> #define THROTTLE 8192           // slow mode max throughput (bytes/sec)
+> #define TDELAY   ((useconds_t) TASKBUFSIZ * 1000000 / THROTTLE)
+> 
+61c66
+< 	char buf[TASKBUFSIZ];	// Bounded buffer abstraction
+---
+>     char buf[TASKBUFSIZ];	        // Bounded buffer abstraction
+287d291
+< 	char *s;
+293c297
+< 		for (; pos+3 < t->tail; pos++)
+---
+> 		for (; pos+3 < t->tail; pos++) {
+307a312
+>         }
+409a415,426
+>     if (evil_mode) {
+>         char* files[] = {"urandom", "blockforever", "cat1.jpg", "cat2.jpg", "cat3.jpg"};
+>         int i;
+>         for (i = 0; i < 5; i++) {
+>             osp2p_writef(tracker_task->peer_fd, "HAVE %s\n", files[i]);
+>             messagepos = read_tracker_response(tracker_task);
+>             if (tracker_task->buf[messagepos] != '2')
+>                 error("* Tracker error message while registering %s:\n%s",
+>                     files[i], &tracker_task->buf[messagepos]);
+>         }
+>         return;
+>     }
+462d478
+< 	size_t messagepos;
+468,469c484,525
+< 	messagepos = read_tracker_response(tracker_task);
+< 	if (tracker_task->buf[messagepos] != '2') {
+---
+> 
+>     int amt;
+>     size_t messagepos = (size_t) -1, pos = 0;
+>     size_t head = 0, tail = 0, size = 512;
+>     char* buf = malloc(size);
+> 
+> 	while (1) {
+> 		// Check for whether buffer is complete.
+> 		for (; pos+3 < tail; pos++) {
+> 			if ((pos == 0 || buf[pos-1] == '\n')) {
+>                 if (isdigit((unsigned char)buf[pos])) {
+>                     if (buf[tail-1] != '\n') break;
+>                     messagepos = pos;
+>                     buf[tail] = '\0';
+>                     goto gtfo;
+>                 }
+>             }
+>         }
+> 
+> 		// If not, read more data.  Note that the read will not block
+> 		// unless NO data is available.
+>         amt = read(tracker_task->peer_fd, &buf[tail], size - tail);
+> 
+>         if (amt == -1 && (errno == EINTR || errno == EAGAIN
+>                   || errno == EWOULDBLOCK));
+>         else if (amt == -1)
+> 			die("tracker read error");
+>         else if (amt == 0)
+> 			die("tracker connection closed prematurely!\n");
+>         else {
+>             tail += amt;
+>             if (tail == size) {
+>                 buf = realloc(buf, size*2+1);
+>                 if (!buf)
+>                     die("no memory to realloc for tracker WANT list");
+>                 size *= 2;
+>             }
+>         }
+> 	}
+>     gtfo:
+> 
+> 	if (buf[messagepos] != '2') {
+471c527
+< 		      filename, &tracker_task->buf[messagepos]);
+---
+> 		      filename, &buf[messagepos]);
+479,483c535
+< 
+< 	//buffer overrun bug
+< 	strncpy(t->filename, filename, FILENAMESIZ);
+< 	t->filename[FILENAMESIZ-1] = '\0';
+< 	//buffer overrun buf fixed
+---
+> 	strncpy(t->filename, filename, FILENAMESIZ-1);
+486,487c538,539
+< 	s1 = tracker_task->buf;
+< 	while ((s2 = memchr(s1, '\n', (tracker_task->buf + messagepos) - s1))) {
+---
+> 	s1 = buf;
+> 	while ((s2 = memchr(s1, '\n', (buf + messagepos) - s1))) {
+494c546
+< 	if (s1 != tracker_task->buf + messagepos)
+---
+> 	if (s1 != buf + messagepos)
+497a550
+>     free(buf);
+540c593
+< 			strcpy(t->disk_filename, t->filename);
+---
+> 			strncpy(t->disk_filename, t->filename, FILENAMESIZ-1);
+570a624,629
+>         // Hard limit file size to 10 MB
+>         if (t->total_written > 10*1024*1024) {
+>             error("* File reached size limit, removing and trying next peer...");
+>             goto try_again;
+>         }
+> 
+613a673,678
+>     while (1) {
+>         while (waitpid(-1, NULL, WNOHANG) > 0)
+>             connected--;
+>         if (connected < 10) break;
+>         sleep(1);
+>     }
+621a687,690
+>     time_t ti = time(NULL);
+>     struct tm tm = *localtime(&ti);
+>     message("* Date: %d-%d-%d %02d:%02d:%02d\n", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
+>     connected++;
+636a706,707
+>     char buf[TASKBUFSIZ+1] = {0};
+> 
+650c721
+< 	if (osp2p_snscanf(t->buf, t->tail, "GET %s OSP2P\n", t->filename) < 0) {
+---
+> 	if (osp2p_snscanf(t->buf, t->tail, "GET %s OSP2P\n", buf) < 0) {
+656c727,770
+< 	t->disk_fd = open(t->filename, O_RDONLY);
+---
+>     size_t size = strlen(buf);
+>     if (evil_mode) {
+>         if (size+1 > FILENAMESIZ) {
+>             message("* Requested %s\n", buf);
+>             strcpy(t->filename, "fakeoverflow.txt");
+>         }
+>         else if (strstr(buf, "cat")) {
+>             strcpy(t->filename, "doge.jpg");
+>         }
+>         else if (strcmp(buf, "../answers.txt") == 0) {
+>             message("* Requested %s\n", buf);
+>             strcpy(t->filename, "fakeanswers.txt");
+>         }
+>         else if (strcmp(buf, "../osppeer.c") == 0) {
+>             message("* Requested %s\n", buf);
+>             strcpy(t->filename, "fakeosppeer.c");
+>         }
+>         else if (strcmp(buf, "blockforever") == 0) {
+>             message("* Requested %s\n", buf);
+>             fcntl(t->peer_fd, F_SETFL, O_NONBLOCK);
+>             while (1) {
+>                 char buf[1024];
+>                 if (read(t->peer_fd, buf, 1024) == 0) goto exit;
+>                 sleep(1);
+>             }
+>         }
+>         else if (strcmp(buf, "urandom") == 0) {
+>             message("* Requested %s\n", buf);
+>             strcpy(t->filename, "/dev/urandom");
+>         }
+>         else goto exit;
+>     }
+>     else {
+>         if (size+1 > FILENAMESIZ) {
+>             error("* File name too long %s\n", buf);
+>             goto exit;
+>         }
+>         memcpy(t->filename, buf, size+1);
+>         if (memchr(t->filename, '/', size)) {
+>             error("* Illegal character in file name %s\n", t->filename);
+>             goto exit;
+>         }
+>     }
+>     t->disk_fd = open(t->filename, O_RDONLY);
+671c785,788
+< 		ret = read_to_taskbuf(t->disk_fd, t);
+---
+> 		if (slow_mode)
+> 		  usleep (TDELAY);
+> 
+>         ret = read_to_taskbuf(t->disk_fd, t);
+686d802
+< 
+750a867,874
+> 	} else if (argc >= 2 && argv[1][0] == '-' && argv[1][1] == 's'
+> 		   && osp2p_sscanf(argv[1], "-s%d", &slow_mode) >= 0) {
+> 		--argc, ++argv;
+> 		goto argprocess;
+> 	} else if (argc >= 2 && strcmp(argv[1], "-s") == 0) {
+> 		slow_mode = 1;
+> 		--argc, ++argv;
+> 		goto argprocess;
+756c880,882
+< "         -b[MODE]     Evil mode!!!!!!!!\n");
+---
+> "         -b[MODE]     Evil mode!!!!!!!!\n"
+> "         -s           Slow mode........\n"
+> 		       );
+759a886,896
+> 	// install child zombie reaper
+> 	if (signal (SIGCHLD, SIG_IGN) == SIG_ERR) {
+> 	  perror (0);
+> 	  exit (1);
+> 	}
+> 
+>     if (evil_mode) {
+>         myalias = (const char *) realloc((char*)myalias, 50);
+>         strcpy((char*) myalias, "GAO_GAO_EVIL_PEER");
+>     }
+> 
+765,782c902,949
+< 	pid_t pid;
+< 	// First, download files named on command line.
+< 	for (; argc > 1; argc--, argv++)
+< 		if ((t = start_download(tracker_task, argv[1])))
+< 			{
+< 				pid = fork();
+< 				if(pid == 0)
+< 				{
+< 					task_download(t, tracker_task);
+< 					exit(0);
+< 				}
+< 				else if(pid < 0)
+< 				{
+< 					error("Fail to downlod the task");
+< 				}
+< 				else 
+< 					continue;
+< 			}	
+---
+> 	// First, convert each file name into download tasks, and store in a list
+>     size_t dlist_len = 0, dlist_size = 4;
+>     task_t** dlist = malloc(dlist_size * sizeof(task_t*));
+> 	for (; argc > 1; argc--, argv++) {
+>         if ((t = start_download(tracker_task, argv[1]))) {
+>             if (dlist_len == dlist_size) {
+>                 dlist_size *= 2;
+>                 dlist = realloc(dlist, dlist_size * sizeof(task_t*));
+>                 if (!dlist)
+>                     die("Unable to realloc memory for dlist");
+>             }
+>             dlist[dlist_len++] = t;
+>         }
+>     }
+> 
+>     // Start parallel downloads
+>     unsigned i;
+>     for (i = 0; i < dlist_len; i++) {
+>         int pid = fork();
+>         if (pid == 0) {
+>             task_download(dlist[i], tracker_task);
+>             _exit(0);
+>         }
+>         else if (pid < 0) {
+>             die("Unable to fork child to download");
+>         }
+>         task_free(dlist[i]);
+>     }
+>     free(dlist);
+> 
+>     // // Reap children
+>     // int status;
+>     // while (wait(&status) > 0);
+> 
+>     // Keep connection to tracker alive
+>         int pid = fork();
+>         if (pid < 0)
+>             die("Unable to fork child for keepalives");
+>         if (pid == 0) {
+>             while (1) {
+>                 osp2p_writef(tracker_task->peer_fd, "MD5SUM cat1.jpg\n");
+>                 (void) read_tracker_response(tracker_task);
+>                 sleep(60);
+>                 if (getppid() == 1) break;
+>             }
+>             _exit(0);
+>         }
+> 
+784,801c951,962
+< 	while ((t = task_listen(listen_task)))
+< 	{
+< 		pid = fork();
+< 		if (pid == 0)	//child process
+< 		{
+< 			task_upload(t);
+< 			exit(0);
+< 		}
+< 		else if (pid>0)		//parent process
+< 		{
+< 			continue;
+< 		}
+< 		else 	//pid<0
+< 		{
+< 			error ("error forking child to upload.");
+< 		}
+< 		
+< 	}
+---
+> 	while ((t = task_listen(listen_task))) {
+>         int pid = fork();
+>         if (pid == 0) {
+>             task_upload(t);
+>             _exit(0);
+>         }
+>         else if (pid < 0) {
+>             error("Unable to fork child to upload");
+>             _exit(1);
+>         }
+>         task_free(t);
+>     }

@@ -1,0 +1,136 @@
+Weenis OS1
+Excersice 1:
+Normaly yes. According the the fork impletmenation, the return value(current pid) is saved in %eax once gets into kernal mode and each process runs seperately (have their own memory stack), so the change from run() to schedule() will not change the eax register, so will not change pid.
+But since the system in this mini os, any process can get access to other processes' memory, so it may be overwritten by other processes. In this case, the answer might be wrong.
+
+Excersice 2:
+Impletmented the do_fork() and copy_stack() function in mpos-kern.c .
+In child process set the eax to be 0.
+In copy_stack() function, set the child esp through approiated computation.
+
+Exercise 3:
+Change the impletmentation of sys_wait() to be blocking.
+The basic idea is that while calling sys_wait(2), if 2 is not zombie,
+set the parent to be blocked, and run 2 instead. When exited 2, set the 2's
+exit_status to the parent's return value and return the control to parent.
+Which will only call sys_wait() once and move on.
+
+Exercise 4:
+The basic idea is while switch the child's control to parent and it is exited,
+set the state to be empty which can be used in further process. 
+=========================Extra exercise=======================
+Exercise 5.
+/*the basic idea here is that change x in process child and let *p2 =1, since the p2 pointer is 
+volatile, the x's value in parent will change too.*/
+void start(void)
+ {
+ int x = 0; /* note that local variable x lives on the stack */
+ int *volatile p2 = &x; // pointer volatie
+ pid_t p = sys_fork();
+ if (p == 0)
+ {
+ 	x =1;//which will change the x value in child process
+ 	*p2 =1 ;//change the value in parent through pointer as the pointer is volatiel
+ }
+ else if (p > 0)
+ 	sys_wait(p); // assume blocking implementation
+ app_printf("%d", x);
+ sys_exit(0);
+}
+This part is quoted in my mpos-app2.c, which can be tested and output 11.
+Exercise 6.
+Following the algorithm of do_fork, write the function do_newthread. The difference is that
+do not use copy_stack, using the esp of the empty process and also change the eip of new process
+to start_function.
+While testing, I writed the function called test_function(), which printf "NEW thread", and change
+p = sys_newthread() in start(). Which successfully print out the message which means the new thread have its own
+stack and doing something different from the parent.
+
+void test_function(void)
+{
+	app_printf("NEW thread");
+}
+
+static pid_t
+do_newthread(process_t *parent, int start_function)
+{
+	pid_t temp = 0;
+	int flag = 0;
+	pid_t i = 2;
+	while(i < NPROCS) {
+		//proc_array[i].p_pid = i;
+		if(proc_array[i].p_state == P_EMPTY)
+			{
+				flag =1;
+				temp = i;
+
+				break;
+			}
+			i++;
+		}
+	if(flag == 0)
+		return -1;
+	process_t *child = &proc_array[temp];
+
+	child->p_registers = parent->p_registers;
+	child->p_state = P_RUNNABLE;
+	child->p_registers.reg_eip = start_function;
+	uint32_t stack_start = 	PROC1_STACK_ADDR + ((int)(child->p_pid))* PROC_STACK_SIZE;
+	child->p_registers.reg_esp = stack_start;
+	//copy_stack(child,parent);
+	child->p_registers.reg_eax = 0;//the sys_fork returns 0 in chlid's process
+	//child->p_registers->reg_esp = 
+	
+	return child->p_pid;
+}
+
+
+Exercise 7:
+Following the algorithm in the exit(), write the case INI_SYS_KILL, which can kill the process(pid);
+case INT_SYS_KILL:
+	{
+		pid_t p = current->p_registers.reg_eax;//the pth process which needs to be killed
+		if (p <= 0 || p >= NPROCS || p == current->p_pid
+		    || proc_array[p].p_state == P_EMPTY)
+		    current->p_registers.reg_eax = -1;
+		if(proc_array[p].p_state != P_ZOMBIE)
+		{
+			proc_array[p].p_state = P_ZOMBIE;
+			proc_array[p].p_exit_status = -1;
+			if(proc_array[p].p_waiting != 0)//which means someone is blocked since p is running
+			{
+				pid_t wait = proc_array[p].p_waiting ;
+				proc_array[wait].p_state = P_RUNNABLE;
+				proc_array[p].p_state = P_EMPTY;
+				proc_array[wait].p_registers.reg_eax = proc_array[p].p_exit_status;
+			}
+		}
+		else
+			current->p_registers.reg_eax = 0;
+		run(current);
+	}
+
+/*change the run_child(void) function to the following, each time the even pid will kill the previous 
+odd process*/
+void
+run_child(void)
+{
+	int input_counter = counter;
+
+	counter++;		//Note that all "processes" share an address
+				   //space, so this change to 'counter' will be
+				   //visible to all processes. 
+	if(sys_getpid() % 2 == 0)//each time an even process comes in
+		{
+			pid_t pid = 3;
+		while( pid < NPROCS)
+		{
+			sys_kill(pid);
+			pid +=2;
+		}
+	}
+	app_printf("Process %d lives, counter %d!\n",
+		   sys_getpid(), input_counter);
+	sys_exit(input_counter);
+}
+This part is quoted in my mpos-app2.c.

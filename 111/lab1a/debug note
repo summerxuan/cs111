@@ -1,0 +1,17 @@
+note:
+line 79:  size 是int, index 是 size_t型，无法比较
+line 92： checked_grow_alloc 中的&word_length 应该是一个size_t的指针
+line 100: 在 struct token里加入 prev member
+line 109： #include <error.h>
+line 117: 没有定义new_token 函数
+131: 130 少了 ；
+212： buffer size 初始化
+226： script 初始化
+276：top function重复了，此处可删掉
+292：for loop改为：
+int i;
+for (i = 0; i<STACK_SIZE; i++)
+	{
+		s->data[i] = NULL;
+	}
+line 303, 549: error提示的意思是：It means you have some goofy characters on that line. They are probably invisible. Try deleting the line entirely and retyping it. 可能是QQ传的时候加入了奇怪的字符

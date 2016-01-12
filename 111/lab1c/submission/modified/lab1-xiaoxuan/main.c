@@ -1,0 +1,86 @@
+// UCLA CS 111 Lab 1 main program
+
+#include <errno.h>
+#include <error.h>
+#include <getopt.h>
+#include <stdio.h>
+
+#include "command.h"
+#include "command-internals.h"
+static char const *program_name;
+static char const *script_name;
+
+static void
+usage (void)
+{
+  error (1, 0, "usage: %s [-pt] SCRIPT-FILE", program_name);
+}
+
+static int
+get_next_byte (void *stream)
+{
+  return getc (stream);
+}
+
+void 
+execute_time_travel_stream(command_stream_t command_stream);
+
+//void 
+//build_depend_list(command_stream_t command_stream, token_stream_t token_stream);
+
+int
+main (int argc, char **argv)
+{
+  int opt;
+  int command_number = 1;
+  int print_tree = 0;
+  int time_travel = 1;
+  /*program_name = argv[0];
+  
+  for (;;)
+    switch (getopt (argc, argv, "pt"))
+      {
+      case 'p': print_tree = 1; break;
+      case 't': time_travel = 1; break;
+      default: usage (); break;
+      case -1: goto options_exhausted;
+      }
+ options_exhausted:;
+
+  // There must be exactly one file argument.
+  if (optind != argc - 1)
+    usage ();
+
+    script_name = argv[optind];
+  */FILE *script_stream = fopen ("luck.sh", "r");
+  if (! script_stream)
+    error (1, errno, "%s: cannot open", script_name);
+  command_stream_t command_stream =
+    make_command_stream (get_next_byte, script_stream);
+    //build_depend_list(command_stream,token_stream_head);
+    if (time_travel)
+  {
+    execute_time_travel_stream(command_stream);
+    return 0;
+  }
+  else
+  {
+  command_t last_command = NULL;
+  command_t command;
+  while ((command = read_command_stream (command_stream)))
+    {
+
+      if (print_tree)
+	{
+	  printf ("# %d\n", command_number++);
+	  print_command (command);
+	}
+      else
+	{
+	  last_command = command;
+	  execute_command (command, time_travel);
+	}
+    }
+  return print_tree || !last_command ? 0 : command_status (last_command);
+}
+}

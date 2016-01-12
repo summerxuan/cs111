@@ -1,0 +1,19 @@
+This is a skeleton for CS 111 Lab 1.
+
+Team member:
+Xiaoxuan Wang(UID:804406399)
+Qinyi Yan(UID:704406413)
+
+Lab1a
+Our code successfully accomplished the functionality in the following procedure:
+1. read file into a buffer;
+2. Convert characters from the buffer into token streams, each of which consists of tokens for one specific command;
+3. Build command trees and then connect trees to command stream;
+4. Pass the first command_stream to read_command_stream function;
+5. the read_command_stream function iteratively returns the head command.
+
+Lab1b
+In lab1b, we impletmented the execute-command.c, which can execute the command which are already stored in the comand_stream.
+We analysed the situations according to different types of commands including and, or, pipe, simple, sequence and subshell. While impletmentation, we used a lot of system calls, the execvp function do the basic staff of executing commands which read from word[].
+While testing, we have our script.sh, which includes all the kinds of subshell,and we execute it using ./timetrash script.sh and compared it result with sh scirpt.sh. It is correct.
+

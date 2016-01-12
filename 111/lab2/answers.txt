@@ -1,0 +1,44 @@
+# Fill in your name, student ID, and email address in this file.
+
+# If you are working in a team, remove the # signs from the three lines for
+# partner 2 below and fill them in as well. Please submit the lab to CourseWeb
+# only once (from only one partner). This file will be automatically parsed in
+# order to give both team members credit for the lab.
+
+# If you have any other information you'd like us to know, please add it at
+# the end of the file.
+
+# Partner 1
+Name: Qinyi Yan	
+Student ID: 704406413
+Email: qinyiyan1106@gmail.com
+
+# Partner 2
+#Name: Xiaoxuan Wang
+#Student ID: 804406399
+#Email: wangxiaoxuan7875@gmail.com
+
+
+# Add any other information you'd like us to have below this line.
+The 17 given testcases are passed. We added three more testcases in order to test deadlock. 
+These there testcase basically tests the deadlock in one device 
+and across two device and even cirullar for three device. Our impletmentation should apply for even more device interleved.
+The deadlock checking function works well to detect function. 
+It basically requires two parts of impletmentation, one is inside one disk and one is across the disk.
+We check deadlock everytime acquiring a read/write lock, and if there is no deadlock, add the process to a queue containing all the processes that is waiting for the CS or having the lock of the CS. 
+The deadlock detection across the disk is not trival. We think for write lock, we should not see this process is also in other devices.
+But for read lock aquire, we should detect if this process is also in other device's which is for write.
+We do not quite understand if it is possible that one process has read permission in two devices.
+But we also impletemented the function called check_deadlock_read, which allows one process has read permission in two devices, but it will 
+return deadlock in case that this process asks for write permission in other devices.
+
+# Answers to the questions:
+Question 1:What assumptions were made that have L._nwaiting++in a CS but not return L._nwaiting?
+Answer:
+We assumed that when we are trying to acquire the lock ,we need to build the critical section, 
+that we need this process is  not interrupted by other processes. And we we are requiring for the lock.
+the L._nwaiting should plus 1 since the current process is asking for access to this lock. So we have 
+L._nwaiting++ in critical section. 
+
+Question 2:Suppose P3did release C (at step 6) before locking A. Could deadlock ever occur?
+Answer: No, the deadlock won't occur. If P3 releases lock C before locking A, P2 will get the lock C and have a chance to run and finish at some point. When P2 finishes, it will release lock B and lock C, then P1 can get the lock B and run to finish. After P1 finish and release lock A, P3 gets the chance to access to drive D and run. The deadlock will not occur.
